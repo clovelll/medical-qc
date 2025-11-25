@@ -9,9 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "antd": "^6.0.0",
+    "better-sqlite3": "^12.4.6",
     "next": "16.0.3",
+    "pg-hstore": "^2.3.4",
+    "postcss": "^8.5.6",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7",
+    "tsx": "^4.20.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
