@@ -12,6 +12,7 @@
     "@ant-design/icons": "^6.1.0",
     "@types/better-sqlite3": "^7.6.13",
     "antd": "^6.0.0",
+    "axios": "^1.13.2",
     "better-sqlite3": "^12.4.6",
     "next": "16.0.3",
     "pg-hstore": "^2.3.4",
