@@ -63,8 +63,13 @@ const PatientQcList = () => {
   const [viewingRecord, setViewingRecord] = useState<MedicalRecord | null>(
     null
   );
-
-  const parsedAppealHistory = useMemo<ChatMessage[]>(() => {
+  //修改的位置
+    const [aiSuggestionModalVisible, setAiSuggestionModalVisible] = useState(false);
+    const [viewingAiSuggestion, setViewingAiSuggestion] = useState<MedicalRecord | null>(null);
+    const [aiSuggestionContent, setAiSuggestionContent] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+  //在这里
+    const parsedAppealHistory = useMemo<ChatMessage[]>(() => {
     if (!viewingRecord?.appealReply) {
       return [];
     }
@@ -216,6 +221,37 @@ const PatientQcList = () => {
     setSelectedRecord(null);
     setAppealContent("");
   };
+  //修改
+    const fetchAISuggestion = async (record: MedicalRecord) => {
+        setAiLoading(true);
+        setAiSuggestionContent(''); // 清空之前的内容
+        try {
+            const response = await fetch('/api/ai', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    diagnosisId: record.id, // 使用记录ID
+                    patientFeedback: '患者对当前诊疗方案有疑问，需要AI健康建议'
+                }),
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                setAiSuggestionContent(result.data.advice);
+            } else {
+                message.error(result.error || '获取AI建议失败');
+                setAiSuggestionContent('获取AI建议失败，请稍后重试');
+            }
+        } catch (error) {
+            console.error('获取AI建议错误:', error);
+            message.error('网络错误，请稍后重试');
+            setAiSuggestionContent('网络错误，获取AI建议失败');
+        } finally {
+            setAiLoading(false);
+        }
+    };
 
   const columns: ColumnsType<MedicalRecord> = [
     {
@@ -338,33 +374,75 @@ const PatientQcList = () => {
       fixed: "right",
       width: 120,
       render: (_, record) => {
-        if (record.appealStatus === APPEAL_REASONS.PROGRESS) {
-          return <span>-</span>;
-        }
-        return (
-          <Space size="middle">
-            {record.appealReply && (
-              <Button
-                type="link"
-                size="small"
-                onClick={() => {
-                  setViewingRecord(record);
-                  setViewModalVisible(true);
-                }}
-              >
-                查看
-              </Button>
-            )}
-            <Button
-              type="link"
-              size="small"
-              onClick={() => handleAppeal(record)}
-            >
-              上诉
-            </Button>
-          </Space>
-        );
+            if (record.appealStatus === APPEAL_REASONS.PROGRESS) {
+                return (
+                    <Space size="middle">
+                        <Button
+                            type="link"
+                            size="small"
+                            onClick={() => {
+                                setViewingAiSuggestion(record);
+                                setAiSuggestionModalVisible(true);
+                                fetchAISuggestion(record); // 添加这行，自动调用AI接口
+                            }}
+                        >
+                            AI建议
+                        </Button>
+                    </Space>
+                );
+            }
+            return (
+                <Space size="middle">
+                    {record.appealReply && (
+                        <Button
+                            type="link"
+                            size="small"
+                            onClick={() => {
+                                setViewingRecord(record);
+                                setViewModalVisible(true);
+                            }}
+                        >
+                            查看
+                        </Button>
+                    )}
+                    <Button
+                        type="link"
+                        size="small"
+                        onClick={() => handleAppeal(record)}
+                    >
+                        上诉
+                    </Button>
+                </Space>
+            );
       },
+      // render: (_, record) => {
+      //   if (record.appealStatus === APPEAL_REASONS.PROGRESS) {
+      //     return <span>-</span>;
+      //   }
+      //   return (
+      //     <Space size="middle">
+      //       {record.appealReply && (
+      //         <Button
+      //           type="link"
+      //           size="small"
+      //           onClick={() => {
+      //             setViewingRecord(record);
+      //             setViewModalVisible(true);
+      //           }}
+      //         >
+      //           查看
+      //         </Button>
+      //       )}
+      //       <Button
+      //         type="link"
+      //         size="small"
+      //         onClick={() => handleAppeal(record)}
+      //       >
+      //         上诉
+      //       </Button>
+      //     </Space>
+      //   );
+      // },
     },
   ];
 
@@ -444,6 +522,39 @@ const PatientQcList = () => {
           setViewingRecord(null);
         }}
       />
+        {/* AI建议弹窗，修改在这里 */}
+        <Modal
+            title="AI健康建议"
+            open={aiSuggestionModalVisible}
+            onCancel={() => {
+                setAiSuggestionModalVisible(false);
+                setViewingAiSuggestion(null);
+                setAiSuggestionContent(''); // 添加这行
+            }}
+            footer={[
+                <Button key="close" onClick={() => {
+                    setAiSuggestionModalVisible(false);
+                    setViewingAiSuggestion(null);
+                    setAiSuggestionContent(''); // 添加这行
+                }}>
+                    关闭
+                </Button>
+            ]}
+            width={700}
+        >
+            <div className="p-4">
+                {aiLoading ? (
+                    <div className="text-center py-8">
+                        <div>AI正在分析您的诊疗记录，请稍候...</div>
+                    </div>
+                ) : (
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap leading-6">
+                        {aiSuggestionContent || "暂无AI建议内容"}
+                    </div>
+                )}
+            </div>
+        </Modal>
+
     </div>
   );
 };
